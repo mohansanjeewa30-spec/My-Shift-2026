@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="si"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101827"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="My Shift">
+<link rel="manifest" href="manifest.webmanifest">
+<title>My Shift Calendar</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0b1220;color:#f3f7ff;font-family:system-ui,-apple-system,"Noto Sans Sinhala",sans-serif}
+main{max-width:620px;margin:auto;padding:16px 14px 34px}.brand{font-size:12px;letter-spacing:1px;color:#a7b7ce;font-weight:800}.title{font-size:28px;font-weight:900;margin:4px 0}.muted{color:#a8b6ca;font-size:13px;line-height:1.5}
+.card{background:#141f32;border:1px solid #2b3a51;border-radius:20px;padding:15px;margin:13px 0}
+label{display:block;color:#c5d1e1;font-size:14px;margin:8px 0 6px;font-weight:700}input,select,button{width:100%;padding:12px;border-radius:12px;border:1px solid #40516b;background:#0b1424;color:#fff;font:inherit}button{background:#65d6a6;color:#062218;border:0;font-weight:850;margin-top:10px;cursor:pointer}.teams{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.team{background:#26354b;color:#fff;border:1px solid #3c4b62;margin:0}.team.active{background:#65d6a6;color:#062218}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.secondary{background:#26354b;color:#eef4ff;border:1px solid #3c4b62}.result{text-align:center;background:#0b1424;border:1px solid #2b3a51;border-radius:17px;padding:16px;margin-top:13px}.big{font-size:40px;font-weight:950;margin:5px}.day{color:#65e0a6}.night{color:#8dbbff}.off{color:#ffd27d}.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:10px}.dow,.datecell{text-align:center;padding:7px 0;font-size:12px;border-radius:7px}.dow{color:#a7b7ce;font-weight:800}.datecell{background:#0b1424;border:1px solid #26354b;min-height:36px;cursor:pointer;color:#fff}.datecell.empty{background:transparent;border-color:transparent}.datecell.selected{outline:2px solid #fff}.datecell.day{background:#174c38;color:#baf5d8}.datecell.night{background:#1d3c70;color:#d5e6ff}.datecell.off{background:#5a4520;color:#fff0c4}.letter{display:block;font-weight:900;font-size:10px}.small{font-size:12px;color:#a7b7ce}.monthcontrols{display:grid;grid-template-columns:1fr 1fr;gap:8px}.monthcontrols button{margin-top:0}.pill{display:inline-block;background:#26354b;padding:4px 8px;border-radius:99px;font-size:11px;color:#d7e4f6}
+</style></head><body><main>
+<div class="brand">MAS ACTIVE · LINEA INTIMO</div><div class="title">My Shift Calendar</div><div class="muted">Offline භාවිතය · Team A / B / C · වසර තෝරන්න</div>
+<section class="card">
+<label for="year">වසර තෝරන්න</label><select id="year"></select>
+<div class="monthcontrols" style="margin-top:10px"><button class="secondary" id="prev">← පෙර මාසය</button><button class="secondary" id="next">ඊළඟ මාසය →</button></div>
+<label>Team එක</label><div class="teams"><button class="team active" data-team="A">TEAM A</button><button class="team" data-team="B">TEAM B</button><button class="team" data-team="C">TEAM C</button></div>
+<label for="date">දිනය</label><input id="date" type="date">
+<div class="result" aria-live="polite"><div id="dateText" class="muted"></div><div id="shift" class="big day">DAY</div><div id="hours"></div><div id="cycle" class="small"></div></div>
+</section>
+<section class="card"><div style="font-weight:850;font-size:18px" id="monthTitle">මාසික දින දර්ශනය</div><div class="cal" id="calendar"></div><p class="small">D = DAY · N = NIGHT · O = OFF. දිනයක් තට්ටු කළාම Shift එක බලන්න.</p></section>
+<section class="card"><div style="font-weight:850">රටාව සහ සටහන්</div><p class="muted">දින 1–8: DAY 3, NIGHT 2, OFF 3. දින 9–15: DAY 2, NIGHT 3, OFF 2. දින 15කට වරක් නැවත සිදුවේ.</p><p class="muted">Team A ආරම්භක දිනය 2026-01-01 = DAY. Team B 2026-10-30 = NIGHT වන ලෙස සකස් කර ඇත. Team C ආරම්භක දිනය 2026-01-01 = OFF. මේ ආරම්භක ස්ථාන මුල් කාඩ් එක සමඟ තහවුරු කරන්න.</p><p class="muted"><span class="pill">Offline</span> App එක පළමු වරට online link එකෙන් load කරගත් පසු service worker cache එක සහය දක්වන browser එකක network නැතිවත් විවෘත කළ හැක. වසර/මාස තේරීම සහ shift ගණනය offline වේ.</p></section>
+<footer class="muted" style="text-align:center">My Shift Calendar · local calculation · no internet required after cached</footer>
+</main>
+<script>
+const pattern=['DAY','DAY','DAY','NIGHT','NIGHT','OFF','OFF','OFF','DAY','DAY','NIGHT','NIGHT','NIGHT','OFF','OFF'];
+const offsets={A:0,B:10,C:5};let team='A',shownYear=new Date().getFullYear(),shownMonth=new Date().getMonth();
+const $=id=>document.getElementById(id);
+function iso(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
+function shiftFor(t,isoStr){let [y,m,d]=isoStr.split('-').map(Number);let delta=Math.round((Date.UTC(y,m-1,d)-Date.UTC(2026,0,1))/86400000);return pattern[((delta+offsets[t])%15+15)%15]}
+function pretty(s){let [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString('si-LK',{year:'numeric',month:'long',day:'numeric',weekday:'long'})}
+function ensureDate(){let y=Number($('year').value)||new Date().getFullYear();shownYear=y;let d=$('date').value;if(!d||Number(d.slice(0,4))!==y)$('date').value=iso(y,shownMonth,Math.min(new Date(y,shownMonth+1,0).getDate(),new Date().getDate()));}
+function show(){let s=$('date').value;if(!s)return;let [y,m,d]=s.split('-').map(Number);shownYear=y;shownMonth=m-1;$('year').value=String(y);let shift=shiftFor(team,s);$('dateText').textContent=pretty(s)+' · Team '+team;$('shift').textContent=shift==='DAY'?'☀️ DAY':shift==='NIGHT'?'🌙 NIGHT':'🏠 OFF';$('shift').className='big '+shift.toLowerCase();$('hours').textContent=shift==='DAY'?'උදේ 7:00 – සවස 7:00':shift==='NIGHT'?'සවස 7:00 – පසුදා උදේ 7:00':'අද නිවාඩු දිනයක්';let delta=Math.round((Date.UTC(y,m-1,d)-Date.UTC(2026,0,1))/86400000);$('cycle').textContent='රටාවේ දිනය '+(((delta+offsets[team])%15+15)%15+1)+'/15';renderCalendar()}
+function renderCalendar(){let y=shownYear,m=shownMonth;$('monthTitle').textContent=new Date(y,m,1).toLocaleDateString('si-LK',{year:'numeric',month:'long'});let cal=$('calendar');cal.innerHTML='';['සඳු','අඟ','බදා','බ්‍රහ','සිකු','සෙන','ඉරි'].forEach(x=>{let e=document.createElement('div');e.className='dow';e.textContent=x;cal.appendChild(e)});let offset=(new Date(y,m,1).getDay()+6)%7,days=new Date(y,m+1,0).getDate();for(let i=0;i<offset;i++){let e=document.createElement('div');e.className='datecell empty';cal.appendChild(e)}for(let d=1;d<=days;d++){let s=iso(y,m,d),sh=shiftFor(team,s),e=document.createElement('button');e.className='datecell '+sh.toLowerCase()+(s===$('date').value?' selected':'');e.innerHTML='<span>'+d+'</span><span class="letter">'+({DAY:'D',NIGHT:'N',OFF:'O'}[sh])+'</span>';e.addEventListener('click',()=>{$('date').value=s;show()});cal.appendChild(e)}}
+function fillYears(){let sel=$('year'),cur=new Date().getFullYear();for(let y=2020;y<=2050;y++){let op=document.createElement('option');op.value=y;op.textContent=y;sel.appendChild(op)}sel.value=cur}
+document.querySelectorAll('[data-team]').forEach(b=>b.addEventListener('click',()=>{team=b.dataset.team;document.querySelectorAll('[data-team]').forEach(x=>x.classList.toggle('active',x.dataset.team===team));show()}));
+$('date').addEventListener('change',show);$('date').addEventListener('input',show);
+$('year').addEventListener('change',()=>{shownYear=Number($('year').value);$('date').value=iso(shownYear,shownMonth,Math.min(Number($('date').value.slice(8,10))||1,new Date(shownYear,shownMonth+1,0).getDate()));show()});
+$('prev').addEventListener('click',()=>{shownMonth--;if(shownMonth<0){shownMonth=11;shownYear--}if(shownYear<2020)shownYear=2020;$('year').value=shownYear;$('date').value=iso(shownYear,shownMonth,Math.min(Number($('date').value.slice(8,10))||1,new Date(shownYear,shownMonth+1,0).getDate()));show()});
+$('next').addEventListener('click',()=>{shownMonth++;if(shownMonth>11){shownMonth=0;shownYear++}if(shownYear>2050)shownYear=2050;$('year').value=shownYear;$('date').value=iso(shownYear,shownMonth,Math.min(Number($('date').value.slice(8,10))||1,new Date(shownYear,shownMonth+1,0).getDate()));show()});
+fillYears();let now=new Date();$('date').value=iso(now.getFullYear(),now.getMonth(),now.getDate());show();
+if('serviceWorker'in navigator && location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+</script></body></html>
